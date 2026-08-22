@@ -23,12 +23,12 @@ An end-to-end image classifier that detects whether images are AI generated or h
 
 ### Class Definitions
 In a real-world setting, there are actually three categories rather than two:
-  - Fully Synthetic (+ve Class): Text-to-image: SD, SDXL, Flux, Midjourney, DALL·E, Imagen
-  - Human Authored: (-ve Class): Camera photos, scans of paintings, hand-made digital art, illustrations
-  - AI-edited/hybrid: In-painting, generative fill, AI upscaling, background removal, style transfer, AI-assisted retouching. This is currently out of our scope though later in the project we mean to test how the detector behaves on edited images.
+  - **Fully Synthetic (+ve Class)**: Text-to-image: Stable Diffusion, Midjourney, DALL·E, Imagen
+  - **Human Authored: (-ve Class)**: Camera photos, scans of paintings, hand-made digital art, illustrations
+  - **AI-edited/hybrid**: In-painting, generative fill, AI upscaling, background removal, style transfer, AI-assisted retouching. This is currently out of our scope though later in the project we mean to test how the detector behaves on edited images.
 
 This is a Computer Vision classification problem where:
-  - Input: A tensor of pixels $x \in {\rm I\!R}^{H \times W \times 3}$
+  - Input: A tensor of pixels $x \in \mathbb{R}^{H \times W \times 3}$
   - Output- A discrete label $y \in \{\text{human, AI}\}$ each with a continuous score
 
 
