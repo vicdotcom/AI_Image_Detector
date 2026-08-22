@@ -1,7 +1,7 @@
 # AI Image Detection
 An end-to-end image classifier that detects whether images are AI generated or human-made. Currently a work-in-progress. 
 
-**Current Stage:** Metadata manifest creation. See below `README`
+**Current Stage:** Metadata manifest creation. See the section on: [The Manifest](#4-the-manifest)
 
 ## Table of Contents
 - [AI Image Detection](#ai-image-detection)
