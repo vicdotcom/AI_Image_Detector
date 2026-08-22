@@ -1,0 +1,89 @@
+## ================================================================================
+## Data: Main image data and anything related to the data should not be committed to Git
+
+data/** 
+# Everything under this folder should not be committed to Git
+# The double asterisks `**` allow the rule to apply to subfolders within the main folder.
+
+
+!data/**/.gitkeep
+# Gitkeep files are mainly for empty directories without any data added yet
+# Git automatically does not track empty folders, we would however want Git to track the WD folder structure. 
+# Therefore this means Git ignores all data within this folder as specified in the previous command, but track only the .gitkeep file so that Git keeps record of the folder structure.
+
+*.parquet
+*.feather
+*.h5
+*.npy
+*.npz
+
+*.csv
+!configs/**/*.csv
+# Large CSVs are data. Small reference CSVs under configs/ are code.
+
+
+## ================================================================================
+## Models
+models/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+
+# =============================================================
+# Secrets. If one of these ever gets committed, rotating the key is
+# mandatory -- git history is forever and `git rm` does not undo it.
+# =============================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# =============================================================
+# Notebooks
+# Outputs are stripped by nbstripout (see README). Checkpoints never
+# belong in version control.
+# =============================================================
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# =============================================================
+# Reports: commit the small stuff, ignore the bulk
+# =============================================================
+reports/figures/**
+!reports/figures/.gitkeep
+!reports/figures/*.png          # curated figures ARE committed
+reports/tmp/
+
+# =============================================================
+# Python
+# =============================================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# =============================================================
+# Experiment tracking (Phase 18) and OS noise
+# =============================================================
+mlruns/
+wandb/
+runs/
+lightning_logs/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

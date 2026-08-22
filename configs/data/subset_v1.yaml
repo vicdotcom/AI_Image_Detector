@@ -1,0 +1,76 @@
+# =====================================================================
+## subset_v1 -- the dataset construction spec.
+# This file IS the dataset definition. The parquet files in data/ are derived artifacts; this is the thing under version control, and the thing cited in the README.
+
+# Every value below is a DECISION. Each one needs a justification in reports/data_card.md. If you cannot justify a number, you do not yet understand why it is there.
+# =====================================================================
+
+name: subset_v1
+seed: 42
+
+## GenImage labels its real (ImageNet) images with this token in the `generator` column. Verify against your metadata.csv before trusting it.
+real_generator_token: nature
+
+# ---------------------------------------------------------------------
+# Generator split. This encodes what "out of distribution" MEANS in this
+# project, so it is the most consequential choice in the file.
+#
+# Reasoning (fill in / revise after your EDA):
+#   * SD 1.4 and 1.5 stay together in TRAIN. Splitting them would create a
+#     fake "OOD" test that is really in-distribution and would flatter the
+#     model.
+#   * BigGAN is held out to test cross-ARCHITECTURE-FAMILY generalisation
+#     (GAN vs diffusion). This is the hardest and most informative case.
+#   * Midjourney is held out as a closed, differently-tuned system.
+#   * Wukong is held out as a diffusion model from a different lab/pipeline.
+# ---------------------------------------------------------------------
+train_generators:
+  - stable_diffusion_v_1_4
+  - stable_diffusion_v_1_5
+  - glide
+  - adm
+  - vqdm
+
+ood_generators:
+  - midjourney
+  - wukong
+  - biggan
+
+# ---------------------------------------------------------------------
+# Bias matching. Restricts REAL images to the region of (size, JPEG QF)
+# space that the fakes occupy, so that neither variable carries label
+# information.
+#
+# Set these AFTER looking at your distributions. The values below follow
+# the Unbiased-GenImage recipe (512px-ish, QF 96); confirm they match what
+# your chosen generators actually produce.
+#
+# Cost of this block: you will discard the large majority of real images.
+# Record the yield (rows before -> rows after) in the data card.
+# ---------------------------------------------------------------------
+matching:
+  min_side: 450
+  max_side: 550
+  jpeg_qf: 96
+  jpeg_qf_tolerance: 0
+
+# ---------------------------------------------------------------------
+# Split fractions apply to the IN-DISTRIBUTION pool only, and are applied
+# over GROUPS (near-duplicate clusters), never over rows.
+# ---------------------------------------------------------------------
+splits:
+  val_fraction: 0.10
+  test_in_dist_fraction: 0.10
+
+# Near-duplicate clustering. Tune max_distance by eye using the pair grid
+# in notebook 02 before fixing it here.
+dedup:
+  phash_max_distance: 5
+  n_bands: 4
+
+# ---------------------------------------------------------------------
+# Pilot. Scaling up to the full dataset means changing ONE number here.
+# n_per_stratum applies per (split, label, generator) cell.
+# ---------------------------------------------------------------------
+pilot:
+  n_per_stratum: 60
