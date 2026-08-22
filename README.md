@@ -1,80 +1,89 @@
-# AI Image Detection Project
+# AI Image Detection
+An end-to-end image classifier that detects whether images are AI generated or human-made. Currently a work-in-progress. 
+
+**Current Stage:** Metadata manifest creation. See below `README`
+
+## Table of Contents
+- [AI Image Detection](#ai-image-detection)
+  - [Table of Contents](#table-of-contents)
+  - [1. Problem Definition](#1-problem-definition)
+    - [Class Definitions](#class-definitions)
+    - [Multiple AI Image Generators](#multiple-ai-image-generators)
+  - [2. The Dataset](#2-the-dataset)
+    - [Data Sources](#data-sources)
+    - [Size and Balance](#size-and-balance)
+    - [Format and Resolution](#format-and-resolution)
+    - [Data Splitting](#data-splitting)
+    - [Dataset Strategy Applied](#dataset-strategy-applied)
+  - [3. Project Structure](#3-project-structure)
+  - [4. The Manifest](#4-the-manifest)
+
 
 ## 1. Problem Definition
 
 ### Class Definitions
-We are simply not detecting fake images, specifically, we are estimating the **provenance** (origin) of an image; i.e. whether its pixel values were by:
-  - A generative model's synthesis process (AI)
-  - A physical capture process (A camera sensor)
-  - Human authoring (painting, drawing, digital art)
-
-This is a Computer Vision classification problem where:
-  - Input: A tensor of pixels $x \in \R^{H \times W \times 3}$
-  - Output- A discrete label $y \in \{\text{human, AI}\}$ each with a continuous score
-
-In truth, there are actually three categories rather than two:
+In a real-world setting, there are actually three categories rather than two:
   - Fully Synthetic (+ve Class): Text-to-image: SD, SDXL, Flux, Midjourney, DALL·E, Imagen
   - Human Authored: (-ve Class): Camera photos, scans of paintings, hand-made digital art, illustrations
-  - AI-edited/hybrid: In-painting, generative fill, AI upscaling, background removal, style transfer, AI-assisted retouching. This is currently out of our scope
+  - AI-edited/hybrid: In-painting, generative fill, AI upscaling, background removal, style transfer, AI-assisted retouching. This is currently out of our scope though later in the project we mean to test how the detector behaves on edited images.
 
-The third category is difficult to label explicitly. Scoping them out is a legitimate engineering decision, but it must be documented nonetheless, and later in the project we mean to test how the detector behaves on edited images.
+This is a Computer Vision classification problem where:
+  - Input: A tensor of pixels $x \in {\rm I\!R}^{H \times W \times 3}$
+  - Output- A discrete label $y \in \{\text{human, AI}\}$ each with a continuous score
 
-### Multiple Image Generators
-Say we train on Stable Diffusion vs Common Objects in Context (COCO) photos. We get a 99.2% accuracy. Great, however, when we test on Midjourney images, we get 61% accuracy. Why?
+
+### Multiple AI Image Generators
+Say we train on Stable Diffusion vs Common Objects in Context (COCO) photos. We get high accuracy ($\geq$ 98%). However, when we test on Midjourney images, we get 61% accuracy. 
 
 The model doesn't simply learn synthetic vs real. It learns a specific generator's fingerprint (e.g.- Stable Diffusion vs not-that-fingerprint). A model trained on one family learns that family's specific signature, and a new generator with a different architecture is simply outside the distribution the model was fit to. 
 
 This is a [distribution shift](https://parasdahal.com/notes/distribution-shift/) and it will be very common in this project for the following reasons:
-  - **It's adversarial by nature**: Generator developers are actively optimizing to remove exactly the artifacts you're detecting. This means the training distribution decays with time
-  - **Post-processing can destroy the evidence**: This entails Resize -> JPEG -> screenshot -> upload to WhatsApp -> download -> re-upload. Each step attenuates the high-frequency forensic signal
-  - **Shortcut learning is almost guaranteed**: If your AI images are 512×512 PNGs and your real images are 1920×1080 JPEGs, a linear model on file metadata gets ~100%. Your CNN will happily learn "PNG-ness" instead of "AI-ness", and you'll never know until you deploy.
+  - **It's adversarial by nature**: Generator developers are actively optimizing to remove exactly the artifacts we may want to detect. This means the training distribution decays with time.
+  - **Post-processing can destroy the evidence**: This entails Resize -> JPEG -> screenshot -> upload to WhatsApp -> download -> re-upload. Each step attenuates the high-frequency forensic signal.
+  - **Shortcut learning is almost guaranteed**: If AI images are 512×512 PNGs and your real images are 1920×1080 JPEGs, a linear model on file metadata gets ~100%. Your CNN will happily learn "PNG-ness" instead of "AI-ness", and you'll never know until you deploy.
 
-In truth, **no detector can prove an image is AI generated.** We can however, produce a probabilistic estimate from a model fit to a specific distribution. This means phrasing our out put as: *image is likely AI-generated (model score 0.91)*. Our objective and scope for the project is as follows: 
+In truth, **no detector can prove an image is AI generated.** We can however, produce a probabilistic estimate from a model fit to a specific distribution. That is: *image is likely AI-generated (model score 0.91)*. Our objective and scope for the project is as follows: 
 > Build a binary image classifier that, given a single still image, outputs a calibrated probability that the image was fully synthesized by a generative model.
-> This classifier will be trained on multiple diffusion-family generators and multiple real-image sources, and evaluated primarily on held-out generators and post-processed images rather than on i.i.d. test accuracy.
+
+> This classifier will be trained on multiple diffusion-family generators and multiple real-image sources, and evaluated primarily on held-out generators and post-processed images rather than on i.i.d. (independent and identically distributed) test accuracy.
 
 
-In other words, our objective is optimizing for cross-generator and cross-degradation performance. In-distribution test accuracy is more of a sanity check rather than an achievement.
+In other words, our objective is optimizing for cross-generator and cross-degradation performance. In-distribution test accuracy is more of a sanity check rather than model achievement.
 
 ## 2. The Dataset
 ### Data Sources
-The data source depends on both the **AI Class** and **Human Class**. The candidate sources worth considering are as follows:
+The data source depends on both the **AI Class** and **Human Class**. The candidate sources we consider are as follows:
   - [GenImage](https://github.com/gendetection/UnbiasedGenImage): a million-scale model and dataset pairing real ImageNet images with synthetic counterparts from eight generators and explicitly designed with bias controls (matched image sizes, controlled JPEG compression)
   - [NITRE Robust AI-Generated Image Detection in The Wild](https://huggingface.co/datasets/deepfakesMSU/NTIRE-RobustAIGenDetection-train): Over 100,000 real and synthetic images each, with synthetic images from 42 open-source and closed-source generators, augmented with 36 distinct real-world image transformations like blurring, cropping, resizing, and compression.
   - [COCO](https://cocodataset.org/#overview)
   - [OpenImages](https://storage.googleapis.com/openimages/web/index.html)
   - [RAISE](https://loki.disi.unitn.it/RAISE/)- Uncompressed camera RAW-derived images
   
-Note that the dataset **must contain images from multiple generators**. This is a non-negotiable as more diversity means better generalization. This allows us to test a strategy where we train on generators A, B, C and test on D effectively simulating a real-world scenario where say, a new image generation model is released.
+The dataset **must contain images from multiple generators**. This is a non-negotiable as more diversity means better generalization. This allows us to test a strategy where we train on generators A, B, C and test on D effectively simulating a real-world scenario where say, a new image generation model is released.
 
 
 ### Size and Balance
-We start at roughly 1000 images with an approximate 50/50 balance. This is because:
-  - This fits on a modest GPU allowing multiple iterations within a short time
-  - The dataset can be leaky (i.e.- Post processed images, poor quality images, etc). Starting small allows to narrow in on what could affect model performance. We shall scale up when the pipeline and evaluation is trustworthy.
-  - The 50/50 balance simplifies training and makes accuracy interpretable. However, this is the **training prior** and not **deployment prior**. In the real-world, AI images might be 1% of uploads. This gap will be dealt with in later stages (i.e.- Threshold selection and calibration).
+We start at roughly 1000 images with an approximate 50/50 balance. Starting small allows to narrow in on what could affect model performance. We shall scale up when the pipeline and evaluation is trustworthy.
 
 ### Format and Resolution
 If AI images arrive in a specific format/resolution (e.g.- PNG/512x512) and real images in another (e.g.- JPEG/1024x1024), we have effectively built a JPEG, 1024x1024 resolution detector. Rather than assessing real vs synthetic the model can cheat and look for other distinctions.
 
-To mitigate the above risk:
-  - Develop an image ingestion pipeline that is applied to every image regardless of class. EXIF-transpose -> convert to RGB -> centre-crop to a fixed size -> save in one consistent format at one consistent quality. This is what well-designed image datasets apply. It might sacrifice some genuine signal but would also aliminate any shortcut the model may try to use to classify the images.
-  - This may be included in the above process, but metadata must be deliberately stripped. Many generators write their name into EXIF/PNG text chunks. Removing them prevents the computer vision model from reading them.
+To mitigate such risk, we develop an image ingestion pipeline that is applied to every image regardless of class. This pipeline will ensure images are in one consistent format at one consistent quality. 
 
 ### Data Splitting
-In statistics, random splitting ensures independent and identically distributed (i.i.d) samples. In this dataset, this is not the case. Random splitting causes data leakages in the following ways:
-  - **Near-duplicates**: Generators produce near-identical images from similar prompts. Real photo datasets can contain burst shots of the same scene. Images in each case can fall in the train and test class essentially causing leakage and limiting generalization.
-  - **Paired Images**: Some image datasets are paired such that one real image maps to six synthetic ones. Random splitting scatters that group across train and test. Similar to the above, the model sees the semantic content at training time.
-  - **Generator Identity**: All generators in both splits means hinders us from testing generalizing to unknown generators which is crucially important.
+In statistics, random splitting ensures i.i.d samples. In this dataset, this is not the case. Random splitting causes data leakages in the following ways:
+  - **Near-duplicates**: Generators may produce near-identical images from similar prompts. Real photo datasets can contain shots of the same scene. Images in each case can fall in the train and test class essentially causing leakage and limiting generalization.
+  - **Paired Images**: Some image datasets are paired such that one real image maps to six synthetic ones. Random splitting scatters that group across train and test. Similar to the above point, it's possible the model sees the semantic content at training time.
+  - **Generator Identity**: All generators in both splits means hinders us from testing generalization to unknown generators which is crucially important.
   - **Source-dataset signature**: A random split can cause the model to learn that "this is COCO's compression profile" or "ImageNet's" or "GenImage's" and be rewarded for it.
 
-The data split recommended is:
-  - Group-aware split by near-duplicate cluster and Pair ID. This ensures nothing derived from the same underlying content crosses a split boundary
+The data split we apply is as follows:
+  - Group-aware split by duplicate or near-duplicate cluster each indicated by a Group ID. This ensures nothing derived from the same underlying content crosses a split boundary
   - Stratify by class, generator and content category so proportions are comparable across splits.
   - Two distinct test sets that are completely held apart and never used until when the most optimal model is determined from the validation set.
     - `test_in_dist`- Same generators and sources as training to check whether the model actually learned anything
     - `test_ood`- At least one generator and one real image source completely absent from training to check whether the model can generalize to unknown image types. This should also include degraded images (resized, JPEG-recompressed, cropped, screenshotted)
-  - Validation set for model selection only. Remember, leave the test set untouched as much as possible.
+  - Validation set for model selection.
 
 ### Dataset Strategy Applied
 [GenImage](https://github.com/gendetection/UnbiasedGenImage) ships over a million pairs of real (from ImageNet) and fake images where fake images were generated from 8 generators (SD v1.4, SD v1.5, GLIDE, VQDM, Wukong, BigGAN, ADM, Midjourney). The data is structured in train and validation sets for each generator with each set containing the synthetic and real images:
@@ -107,22 +116,23 @@ The data split recommended is:
 │   ├── ...
 ```
 
-Additionally, GenImage's real images were deliberately selected so that their size and compression distributions align with the synthetic ones thereby mitigating bias due to image resolution or type. Because the GenImage dataset is already robust with possible bias minimized, we implement only the data from this source for training. 
-  - **Train/Val/`test_in_dist`**: GenImage's synthetic images from 5 generators and their matched real images
-  - **`test_ood_genimage`**: **GenImage's** synthetic images from the remaining three generators and their paired real images. This allows us to test the model on new generators within the same data source domain.
+Additionally, GenImage's real images were deliberately selected so that their size and compression distributions align with the synthetic ones thereby mitigating bias due to image resolution or type. Because the GenImage dataset is already robust with possible bias minimized, we implement the image data from only this source for training. 
+  - **Train/Val/`test_in_dist`**: GenImage's synthetic images from 6 generators and their matched real images
+  - **`test_ood_genimage`**: GenImage's synthetic images from the remaining two generators and their paired real images. This allows us to test the model on new generators within the same data source domain.
   - **`test_wild`**- Image data from [**NITRE**](https://huggingface.co/datasets/deepfakesMSU/NTIRE-RobustAIGenDetection-train). This is a robust dataset consisting of real, synthetic (from 42 generators), and augmented images. Synthetic and augmented data do not carry any metadata on which generator produced them and which transformation was made on them respectively making it a true test of generalization.
   - **`test_ood_real`**- Allows us to measure the false-positive rate from **COCO's** real image library
   - **`test_ood_real_uncompressed`**- Allows us to test on real uncompressed, RAW, zero JPEG images. This will be the hardest source shift for the model.
 
-The GenImage dataset size in its entirety is over 500GB, other image sources such as NITRE and COCO are several gigabytes large. Luckily a [CSV](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910%2FDVN%2FAKDIHF) containing its image metadata is available. This allows us to suitably explore dimensions, compressions and generator distributions as well as plan for subset options.
+The GenImage dataset size in its entirety is over 500GB. Luckily a [CSV](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910%2FDVN%2FAKDIHF) containing its image metadata is available. This allows us to suitably explore dimensions, compressions and generator distributions as well as plan for subset options. 
+
+While we will use the metadata CSV for initial EDA, we also create our own image metadata file known as the [Manifest](#4-the-manifest) which records metadata information and other image statistics from various images sources into one comprehensive file.
 
 ## 3. Project Structure
-Ultimately, the working directory should look something like this:
+The current project structure (so far):
 ```text
 └───AI_Image_Detector
-    │   guide.md
     │   README.md
-    │
+    │   
     ├───configs
     │   └───data
     ├───data              # Where the image data is stored
@@ -134,58 +144,22 @@ Ultimately, the working directory should look something like this:
     │   ├───figures
     │   └───manifests
     ├───scripts
-    ├───src                # Where the source code sits
-    │   └───ai_detector    # This is where the entire pipeline will sit
+    ├───src                # Soruce code
+    │   └───ai_detector    # Where the entire pipeline will sit
     │       ├───data
     │       └───utils
-    └───tests            # For testing our code and scripts
+    └───tests            # For unit testing
 ```
 
-Creating the directory structure beforehand is recommended. First we create the empty folders via the cmd or PowerShell terminal. We use `-p` which allows for quick creation of both parent folders and subfolders thereby avoiding errors when the parent folder does not exist.
+
+## 4. The Manifest
+The **Manifest** in the context of this project is an authoritative dataset containing metadata information and computed image statistics which will later help to facilitate data splitting, dealing with corrupted image files and minimizing data leakage/any chances of shortcut learning. Three scripts are utilized to create it:
 ```bash
-mkdir -p ~/projects/ai-image-detector
-cd ~/projects/ai-image-detector
-
-mkdir -p configs/data
-mkdir -p data/raw data/interim data/processed
-mkdir -p notebooks
-mkdir -p reports/figures reports/manifests
-mkdir -p scripts
-mkdir -p src/ai_detector/data src/ai_detector/utils
-mkdir -p tests
+└── src/ai_detector
+    └── data
+        ├── integrity.py  # For computing image statistics
+        ├── manifest.py   # Creates the manifest dataset file
+        └── selection.py  # Uses the manifest dataset to split image data into train/val/test sets
 ```
-
-We want to commit the above working directory to Git so that our code and files are tracked accordingly. Prior to the first commit however, there are some files that should not be tracked which will be stored in `.gitignore`.
-
-Git automatically does not track empty folders. Also prior to committing the working directory to Git, some folders in our working directory may be empty as we have not added the required files yet (e.g.- Project results, figures, reports, etc), or maybe some entire folders are to be ignored by Git under `gitignore` (e.g.- Project data, sensitive info i.e.- API Keys, Passwords, etc). Regardless, we still want Git to track the *directory structure* rather than the files within them. For such folders, we add a `.gitkeep` file ensuring Git keeps record of them.
-
-## 4. Project Files
-### `integreity.py`
-This is an image integrity and preprocessing module. Prior to training the AI image detector, we first need to understand the dataset feeding it. For instance, for a set of images within a dataset:
-```
-image_001.jpg
-image_002.jpg
-image_003.jpg
-image_004.jpg
-```
-
-We may find:
-```
-image_001.jpg ───── exact copy ───── image_002.jpg
-
-image_003.jpg ───── resized version ───── image_004.jpg
-```
-Which can cause data leakages in the event of splitting to training and evaluation sets.
-
-The module seeks to answer the following questions by combining several different image processing ideas:
-- **Cryptographic Hashing**- Are these files exactly the same?
-- **Image decoding**- Is the image readable?
-- **Perceptual hashing + DCT**- While images may not look exactly the same, are they similar?
-- **JPEG quantization**- Can we infer something about how this JPEG was encoded?
-- **Union-Find / grouping**- Which images belong to the same duplicate/near-duplicate family?
-
-### `manifest.py`
-Creates a `manifest` file that serves as the single source of truth for the entire project. It stores the image statistics computed by `integrity.py` for each image into an authoritative image database in order to facilitate data splitting, dealing with corrupted image files and minimizing data leakage.
-
 
 

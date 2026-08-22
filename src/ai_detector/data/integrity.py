@@ -1,12 +1,29 @@
 """
 Integrity, Fingerprinting and Duplicate-Detection Utilities
 
+This is an image integrity and preprocessing module. Prior to training the AI image detector, we first need to understand the dataset feeding it. For instance, for a set of images within a dataset:
+```
+image_001.jpg
+image_002.jpg
+image_003.jpg
+image_004.jpg
+```
+
+We may find:
+```
+image_001.jpg ───── exact copy ───── image_002.jpg
+
+image_003.jpg ───── resized version ───── image_004.jpg
+```
+Which can cause data leakages in the event of splitting to training and evaluation sets.
+
+
 This module provides utilities for assessing image integrity and preventing
 data leakage in machine learning pipelines. It ensures that:
-
-- Images are uncorrupted and can be opened and processed
 - Data leakage is prevented when splitting datasets into train/evaluation
   sets by detecting duplicate or near-duplicate images
+- Images are uncorrupted and can be opened and processed
+
 
 
 The module performs integrity checks at multiple levels of image representation:
