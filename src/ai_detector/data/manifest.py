@@ -97,7 +97,8 @@ from pathlib import Path
 from typing import Iterable, Sequence # Importing custom type hints
 
 ## `integrity.py` imports
-from integrity import probe_decodability, sha256_file, phash, estimate_jpeg_quality
+from .integrity import probe_decodability, sha256_file, phash, estimate_jpeg_quality
+ # `.` before `integrity` is crucially important as this is not a top level module. Rather it is a relative import
 
 
 ## Supported Image Formats
@@ -172,9 +173,9 @@ class ImageRecord:
 MANIFEST_COLUMNS: list[str] = [f.name for f in fields(ImageRecord)]
 
 
-## ====================================================================================
+## ============================================================================
 ## Probing (For storing image information into one complete ImageRecord)
-## ====================================================================================
+## ============================================================================
 def probe_image(root: Path, abs_path: Path, 
                 source: str, label: int, generator: str, content_class: str | None= None, split: str = "unassigned", compute_hashes: bool= True) -> ImageRecord:
     """
@@ -434,7 +435,7 @@ class LeakageError(AssertionError): # Custom excption definition
  
 def assert_no_leakage(df: pd.DataFrame, keys: Iterable[str] = ("sha256", "group_id")) -> None:
     """
-    This function checks whether particular identifiers occur across multiple splits.
+    This function checks whether particular hash identifiers occur across multiple splits.
  
     Run this as a unit test, not as a notebook cell you might forget. The whole
     credibility of every number you report later rests on this assertion

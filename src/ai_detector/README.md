@@ -1,4 +1,16 @@
 ## Manifest Creation
+### Contents
+- [Manifest Creation](#manifest-creation)
+  - [Contents](#contents)
+  - [Introduction](#introduction)
+  - [Image Statistics (`integrity.py`)](#image-statistics-integritypy)
+    - [Cryptographic Hashing (Duplicate Detection)](#cryptographic-hashing-duplicate-detection)
+    - [Image Decoding](#image-decoding)
+    - [Perceptual Hashing](#perceptual-hashing)
+    - [JPEG Quantization](#jpeg-quantization)
+    - [Grouping Similar Images (Banded LSH)](#grouping-similar-images-banded-lsh)
+  - [Guide](#guide)
+
 ### Introduction
 We create a Manifest which contains various image statistics and metadata information to guide on data splitting, and mitigation of data leakage and/or shortcut learning by utilizing three main modules:
 ```bash
@@ -53,6 +65,7 @@ A DCT transformation is applied to each image and an 8x8 frequency matrix grid c
     │ ░ ░ ░              │
     │                    │
     └────────────────────┘
+    image
 ```
 
 The core operation that detects similar images is **Hamming Distance** computation between any two pHashes.
@@ -73,40 +86,16 @@ It also allows for robustness against real-world pipelines. Real-world images up
 #### Grouping Similar Images (Banded LSH)
 Similar images with narrow Hamming distance are grouped together. Hamming distance can only be computed between image paire. Therefore, rather than simply performing pairwise comparisons between images can result to millions of combinations, we implement Banded Locality-Sensitive Hashing (LSH) which is an algorithmic technique used to find approximate nearest neighbours or similar items in massive datasets.
 
+### Guide
+To build the manifest and determine optimal train/val/test splits. The following files were created and ran in the following order:
 
-### Conceptual Flow
-The above image statistics are then recorded into a metadata dataset via `manifest.py`. `selection.py` draws from the created manifest to construct train/validation/test splits.
+```yaml
+Phase A — Primitives
+├── 1. integrity.py  # hashing, pHash, JPEG quality, corruption checks
+├── 2. manifest.py   # ImageRecord schema, leakage assertion
+└── 3. test_data_integrity.py      # testing modules 1 and 2
 
-```text
-Raw image collection
-       │
-       ▼
-   integrity.py
-       │
-       ▼
-Check files / hashes / grouping
-       │
-       ▼
-   `manifest.py`
-       │
-       ▼
-Create metadata manifest
-       │
-       ▼
-  `selection.py`
-       │
-       ├── Normalize manifest column names
-       │
-       ├── Match real-image metadata to fake-image metadata
-       │
-       ├── Measure metadata shortcuts
-       │
-       ├── Prevent train/test leakage
-       │
-       ├── Create train / validation / test / OOD
-       │
-       └── Optionally create a small pilot dataset
-       │
-       ▼
-Final experimental dataset
+# selection.py will be utilized after dataset loading....
 ```
+
+To be continued....

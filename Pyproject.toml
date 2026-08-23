@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-detector"
+version = "0.1.0"
+description = "Ai-generated vs real (human-made) image classification"
+requires-python = ">=3.10"
+
+
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pyarrow>=14.0",        # parquet engine
+    "pillow>=10.2",
+    "matplotlib>=3.8",
+    "scikit-learn>=1.4",    # the pixel-free shortcut probe, and later baselines
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.3",            # linter + formatter in one tool
+    "nbstripout>=0.7",      # keeps notebook outputs out of git
+    "jupyterlab>=4.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# --------------------------------------------------------------------
+# After `pip install -e ".[dev]"` the `sys.path.insert` lines at the top
+# of the notebooks become unnecessary -- `import ai_detector` just works,
+# from any directory. Do this as soon as the layout stabilises.
+# --------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]           # line length is handled by the formatter
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/*" = ["E402", "F401"]   # notebooks legitimately import mid-file
+
+[tool.pytest.ini_options]
+pythonpath= ["src"]
+testpaths = ["tests"]
+addopts = "-q"

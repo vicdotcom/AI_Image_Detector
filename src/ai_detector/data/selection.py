@@ -12,7 +12,7 @@ Raw image collection
    integrity.py
        │
        ▼
-Check files / hashes / consistency
+Check files / hashes / grouping
        │
        ▼
    manifest.py

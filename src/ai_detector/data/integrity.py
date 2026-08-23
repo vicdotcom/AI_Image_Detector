@@ -382,7 +382,7 @@ def near_duplicate_pairs(hashes: Sequence[str],
     """
     This function finds pairs of images whose 64-bit perceptual hashes (`phash()`) differ by at most `max_distance` bits.
 
-    Rather than simply performing pairwise comparisons between images can result to millions of combinations, we implement Banded Locality-Sensitive Hashing (LSH) which is an algorithmic technique used to find approximate nearest neighbours or similar items in massive datasets.
+    Rather than simply performing pairwise comparisons between images that can result to millions of combinations, we implement Banded Locality-Sensitive Hashing (LSH) which is an algorithmic technique used to find approximate nearest neighbours or similar items in massive datasets.
 
     Banded LSH works by:
         1. Splitting each 64-bit has integer into `n_bands`
