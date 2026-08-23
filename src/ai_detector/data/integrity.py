@@ -150,7 +150,7 @@ def probe_decodability(path: Path)-> DecodeResult:
 
     A decodable image is simply an uncorrupted file. This means its pixels can be successfully read, decompressed, and processed without errors.
 
-    An image file (i.e.- .jpg, .png) is normally structred as follows.
+    An image file (i.e.- .jpg, .png) is normally structured as follows.
       - Header and Metadata- Dimensions (1920x1080), color profiles, EXIF (technical image details such as location, time and date, camera settings, device info)
       - Compressed pixel payload
     
@@ -219,7 +219,7 @@ def phash(path_or_image: Path | Image.Image, hash_size: int = 8) -> str:
 
     The rationale for this function is that say Image A is the photograph of a dog. Image B may be the same photograph though resized, cropped, made brighted/darker, and so on....
 
-    A DCT transformation is applied to each image and an 8x8 grid containing the smallest frequencies are stored as shown below then hashed.
+    A DCT transformation is applied to each image and an 8x8 grid containing the lowest frequencies are stored as shown below then hashed.
     ┌────────────────────┐
     │ █ █ █ ░ ░ ░ ░ ░    │
     │ █ █ █ ░ ░ ░ ░ ░    │
@@ -317,7 +317,7 @@ def estimate_jpeg_quality(path: Path) -> int | None:
     """
     This function computes a metric known as the JPEG Quality Factor (QF) that was applied when the image was encoded.
 
-    JPEG Quality Factor (QF) is a fingerprint of which pipeline produced the file. In practice, image data could come from various soruces. If we scraped the AI-generated image set from one website and the "human" set from another website, then those two websites likely have two different re-encoding pipelines. The model may then try to "cheat" by finding the easiest seperable signal in the training distribution (i.e.- the encoder signal). This function allows us to mitigate this risk.
+    JPEG Quality Factor (QF) is a fingerprint of which pipeline produced the file. In practice, image data could come from various sources. If we scraped the AI-generated image set from one website and the "human" set from another website, then those two websites likely have two different re-encoding pipelines. The model may then try to "cheat" by finding the easiest seperable signal in the training distribution (i.e.- the encoder signal). This function allows us to mitigate this risk.
 
     Note that this only works for JPEG files. Non-JEPGs return `None`.
 

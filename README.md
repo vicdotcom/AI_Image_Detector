@@ -162,5 +162,5 @@ The **Manifest** in the context of this project is an authoritative dataset cont
         ├── manifest.py   # Creates the manifest dataset file
         └── selection.py  # Uses the manifest dataset to split image data into train/val/test sets
 ```
-
+See more information on the metadata statistics computed in the [src README](https://github.com/vicdotcom/AI_Image_Detector/tree/master/src/ai_detector).
 
