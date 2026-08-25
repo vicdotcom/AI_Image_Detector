@@ -6,7 +6,7 @@ pHash Hamming Distance reference:
     - 6 to 10 differing bits: Similar content with moderate edits.
     - greater than 12 differing bits: Completely different images
 
-Run with: pytest -q (See Pyproject for configuration)
+Run with: pytest -q (See Pyproject.toml for configuration)
 """
 
 from __future__ import annotations
