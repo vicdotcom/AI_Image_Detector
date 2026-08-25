@@ -1,0 +1,25 @@
+{
+  "doi": "doi:10.7910/DVN/AKDIHF",
+  "downloaded_utc": "2026-08-24T16:03:42+00:00",
+  "source": "https://dataverse.harvard.edu",
+  "files": [
+    {
+      "label": "corrupted_files.txt",
+      "bytes": 807,
+      "sha256": "977e3ac27b0cb0fd0ab70c479a144f0175068b0f4fcb3cddbb2d8b9e6aaf84ad",
+      "server_checksum": {
+        "type": "MD5",
+        "value": "5875821d6ad565284a5379362a7f07b5"
+      }
+    },
+    {
+      "label": "genimage_metadata.csv",
+      "bytes": 223850689,
+      "sha256": "afd9b5f8b1911997b5e859c8fe94380b1857bcd3916ac4f4c9734411bbb89ac2",
+      "server_checksum": {
+        "type": "MD5",
+        "value": "2242b70fede792b9a08165f6023ca196"
+      }
+    }
+  ]
+}

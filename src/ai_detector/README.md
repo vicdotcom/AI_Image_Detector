@@ -95,6 +95,11 @@ Phase A — Primitives
 ├── 2. manifest.py   # ImageRecord schema, leakage assertion
 └── 3. test_data_integrity.py      # testing modules 1 and 2
 
+Phase B — GenImage metadata CSV acquisition
+├── 4. download_genimage_metadata.py
+│        produces: metadata table, corrupted files info, `provenance.json` file
+           # provenance.json records info about the metadata CSV and corrupled_files file such as its hash fingerprint, date and time of downloading, file sizes, etc
+
 # selection.py will be utilized after dataset loading....
 ```
 

@@ -1,15 +1,20 @@
 ## ================================================================================
 ## Data: Main image data and anything related to the data should not be committed to Git
 
+
 data/** 
 # Everything under this folder should not be committed to Git
 # The double asterisks `**` allow the rule to apply to subfolders within the main folder.
+
 
 
 !data/**/.gitkeep
 # Gitkeep files are mainly for empty directories without any data added yet
 # Git automatically does not track empty folders, we would however want Git to track the WD folder structure. 
 # Therefore this means Git ignores all data within this folder as specified in the previous command, but track only the .gitkeep file so that Git keeps record of the folder structure.
+
+!data/raw/genimage_meta/provenance.json 
+# We would like to commit this file
 
 *.parquet
 *.feather
@@ -89,4 +94,3 @@ Thumbs.db
 .vscode/
 
 ## Specific files
-C:\Users\ProBook\Desktop\Serious\AI_Image_Detector\guide.md
