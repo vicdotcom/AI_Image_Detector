@@ -42,6 +42,7 @@ from typing import Sequence
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -51,12 +52,12 @@ FIGDIR= Path("reports/figures")
 
 
 ## Saving Figures ---------------------------------------------------------
-def save(fig: plt.Figure, name: str, figdir: Path = FIGDIR) -> Path:
+def save(fig: Figure, name: str, figdir: Path = FIGDIR) -> Path:
     """
     Saves a figure at a consistent size/DPI (quality) and returns its path.
 
     Parameters:
-        fig (plt.Figure): The generated figure
+        fig (Figure): The generated figure
         name (str): Name of the generated figure
         figdir (Path): The path where the figure will be saved
 
@@ -71,7 +72,7 @@ def save(fig: plt.Figure, name: str, figdir: Path = FIGDIR) -> Path:
 
 
 ## EDA Plot 1 (Seperability) -------------------------------------------------------------
-def size_scatter(df: pd.DataFrame, hue: str = "generator", max_points: int = 400) -> plt.Figure:
+def size_scatter(df: pd.DataFrame, hue: str = "generator", max_points: int = 400) -> Figure:
     """
     Width vs. height per generator. This function assesses image dimensions from each generator and checks whether they are seperable. For instance, we may find:
     ```
@@ -92,7 +93,7 @@ def size_scatter(df: pd.DataFrame, hue: str = "generator", max_points: int = 400
         max_points (int): Maximum number of points to plot if the image group has fewer points than `max_points`, the function plots all of the points from the image group
     
     Returns:
-        plt.Figure: Scatterplot of width vs. height per generator
+        Figure: Scatterplot of width vs. height per generator
 
     """
     fig, ax = plt.subplots(figsize=(7, 6))
@@ -107,7 +108,10 @@ def size_scatter(df: pd.DataFrame, hue: str = "generator", max_points: int = 400
 
 
 ## EDA Plot 2 -------------------------------------------------------------
-def dist_by_class(df: pd.DataFrame, col: str, bins: int = 60, log: bool = False) -> plt.Figure:
+def dist_by_class(df: pd.DataFrame, 
+                  col: str, 
+                  bins: int = 60, 
+                  density: bool= False) -> Figure:
     """
     Overlaid histogram of `col` for real vs AI.
 
@@ -122,18 +126,21 @@ def dist_by_class(df: pd.DataFrame, col: str, bins: int = 60, log: bool = False)
         df (pd.DataFrame): Image dataset
         col (str): Image dataset column names. They should be numeric columns 
         bins (int): Number of bins for the histogram
-        log (bool): `True` for a logarithmic x-axis, otherwise the default axis applies
-
+        density (int): `True` to show proportions. `False` for frequency counts (default).
+        
     Returns:
-        plt.Figure: Histogram of density against image feature
+        Figure: Histogram of density against image feature
     """
     fig, ax = plt.subplots(figsize=(8, 4))
     for label, name in [(0, "human"), (1, "AI")]:
         vals = df.loc[df["label"] == label, col].dropna()
-        if len(vals):
-            ax.hist(vals, bins=bins, alpha=0.55, label=name, density=True)
-    if log:
-        ax.set_xscale("log")
+        if len(vals): # Safety check_ Are there any samples to plot?
+            if density:
+                ax.hist(vals, bins=bins, alpha=0.55, label=name, density=True)
+                ax.set_ylim(0,1)
+            else: 
+                ax.hist(vals, bins=bins, alpha=0.55, label=name, density=False)
+
     ax.set_xlabel(col)
     ax.set_ylabel("density")
     ax.set_title(f"{col} by class")
@@ -147,7 +154,7 @@ def image_grid(
     titles: Sequence[str] | None = None,
     ncols: int = 8,
     thumb: int = 160,
-        ) -> plt.Figure:
+        ) -> Figure:
     """
     Thumbnail grid. Conceptually: 
     ```
@@ -169,7 +176,7 @@ def image_grid(
         thumb (int): Thumbnail size (e.g- 160x160).
 
     Returns:
-        plt.Figure: Plot showing a grid of various images.
+        Figure: Plot showing a grid of various images.
 
     """
     n = len(paths)
@@ -193,7 +200,7 @@ def image_grid(
 
 
 ## EDA Plot 4 ------------------------------------------------------------
-def pair_grid(pairs: Sequence[tuple[Path, Path, int]], max_pairs: int = 8) -> plt.Figure:
+def pair_grid(pairs: Sequence[tuple[Path, Path, int]], max_pairs: int = 8) -> Figure:
     """
     Show near-duplicate candidates side by side with their bit distance.
  
@@ -205,7 +212,7 @@ def pair_grid(pairs: Sequence[tuple[Path, Path, int]], max_pairs: int = 8) -> pl
         max_pairs (int): For managing the number of candidate pairs displayed
     
     Returns:
-        plt.Figure: Plot of image pairs side by side with their Hamming Distances.
+        Figure: Plot of image pairs side by side with their Hamming Distances.
     """
     pairs = list(pairs)[:max_pairs]
     fig, axes = plt.subplots(len(pairs), 2, figsize=(5, 2.4 * len(pairs)))

@@ -58,6 +58,13 @@ import yaml
 ## ==================================================================================
 @dataclass
 class SubsetConfig:
+    """
+    Custom data structure for the dataset's and model's configuration parameters. Includes:
+      - In distribution and out of distribution generators
+      - Image matching parameters to ensure consistency across image dimensions and statistics
+      - validation and in-distribution test set splits
+      - Optional pilot dataset construction parameters
+    """
     name: str # Name of the current config (e.g.- baseline, pilot, strict matching)
     seed: int = 42
     real_generator_token: str = "nature" 
@@ -183,16 +190,16 @@ def apply_matching(df: pd.DataFrame, cfg: SubsetConfig)-> pd.DataFrame:
     r"""
     This function restricts real images so their metadata occupies approximately the same region as the generated images.
 
-    Bias matching is a data filtering technique designed to eliminate shortcut learning. Generative AI models output images with rigid, predictable metadata: exact canvas dimensions (e.g.- 1024x1024) and consistent JPEG Quality Factors (QF). In contrast, real-world web photos come in thousands of random resolutions and compression levels. If a raw dataset is fed to a deep learning model, the model neural network may quickly learn via a shortcut rule.
+    Bias matching is a data filtering technique designed to eliminate shortcut learning. Generative AI models output images with rigid, predictable metadata: exact canvas dimensions (e.g.- 1024x1024) and consistent JPEG Quality Factors (QF). In contrast, real photos come in thousands of random resolutions and compression levels. If a raw dataset is fed to a deep learning model, the model neural network may quickly learn via a shortcut rule.
 
     Bias matching therefore forces real and fake images to share the exact same metadata profile, thereby eliminating any predictive signal from image metadata.
 
-    Generative models cannot easiy change their output compression during dataset collection. Therefore we apply an asymetric bias matching approach:
+    Generative models cannot easiy change their output compression during dataset collection. Also, they are very consistent in their dimensions and encoding. Therefore we apply an asymetric bias matching approach:
       1. AI-generated images are left untouched as they already occupy a narrow, constrained band of space
       2. Any human-made images that fall outside the (`size` and `jpeg_qf` range) occupied by the fakes are removed
       3. A simple classifier is trained on metadata alone. If we get an accuracy close to 50% (akin to a random guess) shortcut learning is successfully eliminated. The higher the accuracy score, the more bias is inherent in the metadata (see `shortcut_probe()`)
 
-    ****There is a consequence to this symmetric approach however. We are left with far less human-made images
+    ****There is a consequence to this symmetric approach however. It is possible to remain with far less human-made images
     """
 
     # Identifying real images
@@ -218,6 +225,7 @@ def apply_matching(df: pd.DataFrame, cfg: SubsetConfig)-> pd.DataFrame:
 
 def shortcut_probe(df: pd.DataFrame, 
                    feature_cols: tuple[str, ...] = ("width", "height", "jpeg_qf"), 
+                   n_folds: int = 5,
                    seed: int = 0) -> float:
     """
     This function checks whether real and AI-generated images can be distinguished without looking at the image itself. 
@@ -225,6 +233,15 @@ def shortcut_probe(df: pd.DataFrame,
     A simple decision tree is fit on metadata only and returns 5-fold CV accuracy. 
       - ~0.50  -> metadata carries no label information. This is the score we want to achieve.
       - ~0.95  -> a model can 'solve' your benchmark without vision at all. Shortcut learning
+
+    Params:
+      df (pd.DataFrame): The image metadata dataset
+      feature_cols (tuple[str, ...]): The input features to the simple classifier. Default features are `("width", "height", "jpeg_qf")` therefore ensure these are present in your `df` DataFrame otherwise specify the features explicitly.
+      n_folds (int): Number C-V folds created. **Default**: 5
+      seed (int): For reproducibility
+
+    Returns:
+      score (float): Average classification accuracy score across `n_folds`
     """
 
     from sklearn.model_selection import cross_val_score
@@ -240,7 +257,7 @@ def shortcut_probe(df: pd.DataFrame,
         return float("nan")
       # In the event the DataFrame contains only one type of image (either only real or AI-generated), "nan" is returned
     clf= DecisionTreeClassifier(max_depth= 3, random_state= seed)
-    return float(cross_val_score(clf, X, y, cv= 5, n_jobs= -1).mean())
+    return float(cross_val_score(clf, X, y, cv= n_folds, n_jobs= -1).mean())
       # Returns average accuracy score across 5 corss-validation folds
       # We use a simple classifier as the goal is to identify where an obvious metadata shortcut is present
 

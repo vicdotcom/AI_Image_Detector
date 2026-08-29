@@ -28,16 +28,11 @@ dev = [
     "ruff>=0.3",            # linter + formatter in one tool
     "nbstripout>=0.7",      # keeps notebook outputs out of git
     "jupyterlab>=4.1",
+    "ipykernel"
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-# --------------------------------------------------------------------
-# After `pip install -e ".[dev]"` the `sys.path.insert` lines at the top
-# of the notebooks become unnecessary -- `import ai_detector` just works,
-# from any directory. Do this as soon as the layout stabilises.
-# --------------------------------------------------------------------
 
 [tool.ruff]
 line-length = 100
