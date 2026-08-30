@@ -1,9 +1,11 @@
 # =====================================================================
 ## subset_v1 -- the dataset construction spec.
-# This file IS the dataset definition. The parquet files in data/ are derived artifacts; this is the thing under version control, and the thing cited in the README.
+# subset_v1 represents the initial bias matching configuration before any analysis. 
 
-# Every value below is a DECISION. Each one needs a justification in reports/data_card.md. If you cannot justify a number, you do not yet understand why it is there.
-# =====================================================================
+# It's mainly based on the strategy applied in this repo: <https://github.com/gendetection/UnbiasedGenImage>
+
+# Our final configuration should be in subset_final.yaml
+## =====================================================================
 
 name: subset_v1
 seed: 42
@@ -37,16 +39,7 @@ ood_generators:
   - biggan
 
 # ---------------------------------------------------------------------
-# Bias matching. Restricts REAL images to the region of (size, JPEG QF)
-# space that the fakes occupy, so that neither variable carries label
-# information.
-#
-# Set these AFTER looking at your distributions. The values below follow
-# the Unbiased-GenImage recipe (512px-ish, QF 96); confirm they match what
-# your chosen generators actually produce.
-#
-# Cost of this block: you will discard the large majority of real images.
-# Record the yield (rows before -> rows after) in the data card.
+# Bias matching
 # ---------------------------------------------------------------------
 matching:
   min_side: 450

@@ -108,10 +108,11 @@ def size_scatter(df: pd.DataFrame, hue: str = "generator", max_points: int = 400
 
 
 ## EDA Plot 2 -------------------------------------------------------------
-def dist_by_class(df: pd.DataFrame, 
+def dist_by_label(df: pd.DataFrame, 
                   col: str, 
                   bins: int = 60, 
-                  density: bool= False) -> Figure:
+                  density: bool= False, 
+                  log: bool = False) -> Figure:
     """
     Overlaid histogram of `col` for real vs AI.
 
@@ -126,25 +127,38 @@ def dist_by_class(df: pd.DataFrame,
         df (pd.DataFrame): Image dataset
         col (str): Image dataset column names. They should be numeric columns 
         bins (int): Number of bins for the histogram
-        density (int): `True` to show proportions. `False` for frequency counts (default).
+        density (bool): `True` to show proportions. `False` for frequency counts (default).
+        log (bool): `True` to show a logarithmic x-axis scale. `False` for the default x-axis scale (default).
         
     Returns:
         Figure: Histogram of density against image feature
     """
     fig, ax = plt.subplots(figsize=(8, 4))
+    
+    # If using x-log scale, define logarithmically spaced bins automatically if integer count passed
+    if log and isinstance(bins, int):
+        # Determine min and max across all valid values to avoid log(0) errors
+        valid_vals = df[col].dropna()
+        valid_vals = valid_vals[valid_vals > 0]  # log scale requires positive values
+        if not valid_vals.empty:
+            bins = np.logspace(np.log10(valid_vals.min()), np.log10(valid_vals.max()), bins)
+
     for label, name in [(0, "human"), (1, "AI")]:
         vals = df.loc[df["label"] == label, col].dropna()
-        if len(vals): # Safety check_ Are there any samples to plot?
-            if density:
-                ax.hist(vals, bins=bins, alpha=0.55, label=name, density=True)
-                ax.set_ylim(0,1)
-            else: 
-                ax.hist(vals, bins=bins, alpha=0.55, label=name, density=False)
+        if len(vals):  # Safety check
+            ax.hist(vals, bins=bins, alpha=0.55, label=name, density=density)
+
+    if log:
+        ax.set_xscale('log')
+
+    if density and not log:
+        ax.set_ylim(0, 1)
 
     ax.set_xlabel(col)
-    ax.set_ylabel("density")
-    ax.set_title(f"{col} by class")
+    ax.set_ylabel("density" if density else "count")
+    ax.set_title(f"{col} by label")
     ax.legend()
+    
     return fig
 
 

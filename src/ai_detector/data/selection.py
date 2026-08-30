@@ -199,7 +199,14 @@ def apply_matching(df: pd.DataFrame, cfg: SubsetConfig)-> pd.DataFrame:
       2. Any human-made images that fall outside the (`size` and `jpeg_qf` range) occupied by the fakes are removed
       3. A simple classifier is trained on metadata alone. If we get an accuracy close to 50% (akin to a random guess) shortcut learning is successfully eliminated. The higher the accuracy score, the more bias is inherent in the metadata (see `shortcut_probe()`)
 
-    ****There is a consequence to this symmetric approach however. It is possible to remain with far less human-made images
+    ****Consequence****: It is possible to remain with far less human-made images.
+
+    Params:
+      df (pd.DataFrame): The metadata/image dataset. Ensure columns `generator`, `height`, `width`, and `jpeg_qf` are present.
+      cfg (class SubsetConfig): The bias matching configuration parameters. See `class SubsetConfig` for the structure. Can take in a `yaml` file in this structure.
+
+    Returns:
+     matched_df (pd.DataFrame): A dataframe with real and AI-generated images that are consistent across dimensions and JPEG quality factor (JPEG QF).
     """
 
     # Identifying real images
