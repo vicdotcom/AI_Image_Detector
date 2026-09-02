@@ -41,7 +41,7 @@ Final experimental dataset
 """
 
 from __future__ import annotations
-from typing import Any # Allows type hinting into Any datatype
+from typing import Any, cast # Allows type hinting into Any datatype
 
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -203,7 +203,7 @@ def apply_matching(df: pd.DataFrame, cfg: SubsetConfig)-> pd.DataFrame:
 
     Params:
       df (pd.DataFrame): The metadata/image dataset. Ensure columns `generator`, `height`, `width`, and `jpeg_qf` are present.
-      cfg (class SubsetConfig): The bias matching configuration parameters. See `class SubsetConfig` for the structure. Can take in a `yaml` file in this structure.
+      cfg (class SubsetConfig): The bias matching configuration parameters. See `class SubsetConfig` for the structure. Can take in a `yaml` file in this structure. Note that when restricting real images per dimension, if `min_side` and `max_side` in the `.yaml` file is `None`, then `apply_matching()` defaults to restricting the real images per modal height and width for each generator.
 
     Returns:
      matched_df (pd.DataFrame): A dataframe with real and AI-generated images that are consistent across dimensions and JPEG quality factor (JPEG QF).
@@ -212,6 +212,25 @@ def apply_matching(df: pd.DataFrame, cfg: SubsetConfig)-> pd.DataFrame:
     # Identifying real images
     is_real= df["generator"] == cfg.real_generator_token # Returns Boolean
     keep= pd.Series(True, index= df.index)
+
+    ## This part of the code proposes restricting the reals to the modal dimensions of the AI generated images. We found it to produce far too few real images however.
+
+    if cfg.min_side is None and cfg.max_side is None:
+        # Per-generator modal (width, height) matching
+        accepted_sizes: set[tuple[int, int]] = set()
+        for _, g in df.loc[~is_real].groupby("generator"):
+            modal_size = cast(
+                tuple[int, int],
+                g[["width", "height"]].value_counts().idxmax(),
+            )
+            accepted_sizes.add(modal_size)
+              # value_counts().idxmax() finds the most frequent (width, height) pair
+              # rather than the mode of width and height independently, which could
+              # recombine into a size the generator never actually produced
+
+        real_pairs = pd.Series(list(zip(df["width"], df["height"])), index=df.index)
+        matches_mode = real_pairs.isin(accepted_sizes)
+        keep &= ~is_real | matches_mode
 
     # Minimum size (to be retained)
     if cfg.min_side is not None:
@@ -233,6 +252,8 @@ def apply_matching(df: pd.DataFrame, cfg: SubsetConfig)-> pd.DataFrame:
 def shortcut_probe(df: pd.DataFrame, 
                    feature_cols: tuple[str, ...] = ("width", "height", "jpeg_qf"), 
                    n_folds: int = 5,
+                   scoring: str = 'accuacy', 
+                    # Default for balanced classes.
                    seed: int = 0) -> float:
     """
     This function checks whether real and AI-generated images can be distinguished without looking at the image itself. 
@@ -245,6 +266,7 @@ def shortcut_probe(df: pd.DataFrame,
       df (pd.DataFrame): The image metadata dataset
       feature_cols (tuple[str, ...]): The input features to the simple classifier. Default features are `("width", "height", "jpeg_qf")` therefore ensure these are present in your `df` DataFrame otherwise specify the features explicitly.
       n_folds (int): Number C-V folds created. **Default**: 5
+      scoring (str): The classification scoring metric applied. Default is `accuracy` which is good for balanced classes and also because we care about performance on every class. If data is imbalanced, `balanced_accuracy` is recommended. 
       seed (int): For reproducibility
 
     Returns:
@@ -264,7 +286,7 @@ def shortcut_probe(df: pd.DataFrame,
         return float("nan")
       # In the event the DataFrame contains only one type of image (either only real or AI-generated), "nan" is returned
     clf= DecisionTreeClassifier(max_depth= 3, random_state= seed)
-    return float(cross_val_score(clf, X, y, cv= n_folds, n_jobs= -1).mean())
+    return float(cross_val_score(clf, X, y, cv= n_folds, n_jobs= -1, scoring= scoring).mean())
       # Returns average accuracy score across 5 corss-validation folds
       # We use a simple classifier as the goal is to identify where an obvious metadata shortcut is present
 

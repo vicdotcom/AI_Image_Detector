@@ -92,9 +92,6 @@ def main() -> int:
     print(f"\nWrote provenance record -> {prov_path}")
     print("COMMIT provenance.json. Do not commit the CSV itself.")
     return 0
- 
-
-
 
 ## Hashing downloaded files 
 def sha256_file(path: Path, chunk: int = 1 << 20) -> str:
