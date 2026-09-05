@@ -95,10 +95,17 @@ Phase A — Primitives
 ├── 2. manifest.py   # ImageRecord schema, leakage assertion
 └── 3. test_data_integrity.py      # testing modules 1 and 2
 
-Phase B — GenImage metadata CSV acquisition
+Phase B — GenImage metadata CSV acquisition, EDA
 ├── 4. download_genimage_metadata.py
 │        produces: metadata table, corrupted files info, `provenance.json` file
-           # provenance.json records info about the metadata CSV and corrupled_files file such as its hash fingerprint, date and time of downloading, file sizes, etc
+|        # provenance.json records info about the metadata CSV and corrupled_files file such as its hash fingerprint, date and time of downloading, file sizes, etc
+|
+├── 5. metadata_EDA.ipynb 
+        purpose: EDA of the metadata table, visualizations, and insights prior to downloading the actual images
+        produces: EDA plot visualizations stored in `reports/figures`. Bias matching results. Draws from `.yaml` config file for bias matching parameters.
+├── 6. selection.py 
+        purpose: Where the bias matching algorithm is written        
 
-# selection.py will be utilized after dataset loading....
+
+
 ```

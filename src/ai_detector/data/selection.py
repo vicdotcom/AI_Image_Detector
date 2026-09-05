@@ -298,10 +298,10 @@ def assign_genimage_splits(df: pd.DataFrame,
                            group_col: str = "group_id") -> pd.DataFrame:
     """
     Assigns the following train/validation/test splits:
-      - train: Model training
-      - val: For evaluation to find the best performing model
-      - test_in_dist: Consists of images produced by the same generators that produced the images in the `train` set
-      - test_ood_genimage: Images produced by completely new generators that were not in the `train` set
+      - `train`: Model training
+      - `val`: For evaluation to find the best performing model
+      - `test_in_dist`: Consists of images produced by the same generators that produced the images in the `train` set
+      - `test_ood_genimage`: Images produced by completely new generators that were not in the `train` set
 
     Also handles how human-made images are split. The metadata manifest database should contain clusters of similar human-made and AI-generated images groups e.g.:
     ```
