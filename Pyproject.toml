@@ -22,13 +22,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+download = [
+    "gdown>=5.1",           # Google Drive downloads (GenImage)
+    "huggingface_hub>=0.20", # HuggingFace Hub downloads (NTIRE)
+    "kaggle>=1.6",           # Kaggle dataset downloads (RAISE)
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=4.1",
     "ruff>=0.3",            # linter + formatter in one tool
     "nbstripout>=0.7",      # keeps notebook outputs out of git
     "jupyterlab>=4.1",
-    "ipykernel"
+    "ipykernel",
 ]
 
 [tool.setuptools.packages.find]

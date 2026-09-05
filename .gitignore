@@ -13,8 +13,12 @@ data/**
 # Git automatically does not track empty folders, we would however want Git to track the WD folder structure. 
 # Therefore this means Git ignores all data within this folder as specified in the previous command, but track only the .gitkeep file so that Git keeps record of the folder structure.
 
-!data/raw/genimage_meta/provenance.json 
-# We would like to commit this file
+!data/raw/
+!data/raw/genimage_meta/
+!data/raw/genimage_meta/provenance.json
+!data/raw/tiny_genimage/
+!data/raw/tiny_genimage/provenance.json
+# We would like to commit specific files within the data folder, such as the provenance.json files
 
 *.parquet
 *.feather

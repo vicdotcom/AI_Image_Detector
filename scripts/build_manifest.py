@@ -13,7 +13,8 @@ Usage examples:
 
     # COCO real images
     python scripts/build_manifest.py \
-        --root data/raw --scan data/raw/coco/val2017 \
+        --root data/raw \
+        --scan data/raw/coco/val2017 \
         --source coco --label 0 --generator real --split test_ood_real \
         --out data/interim/manifest_coco.parquet
 ```
