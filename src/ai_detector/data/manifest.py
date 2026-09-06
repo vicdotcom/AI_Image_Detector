@@ -240,8 +240,8 @@ def probe_image(root: Path, abs_path: Path,
     """
 
     ## Obtain relative path
-    rel= str(abs_path.relative_to("root").as_posix())
-      # Relative path is obtained then .as_posix() ensures forward slash formatting
+    rel= str(abs_path.relative_to(root).as_posix())
+
     
     ## Decodability check
     decode= probe_decodability(abs_path)

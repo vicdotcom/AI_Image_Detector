@@ -115,7 +115,7 @@ ai-image-detector/
 
 ```bash
 git clone <this-repo>
-cd ai-image-detector
+cd Ai_Image_Detector
 
 python -m venv .venv
 source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
