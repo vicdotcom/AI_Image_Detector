@@ -18,6 +18,8 @@ data/**
 !data/raw/genimage_meta/provenance.json
 !data/raw/tiny_genimage/
 !data/raw/tiny_genimage/provenance.json
+!data/raw/coco/
+!data/raw/coco/provenance.json
 # We would like to commit specific files within the data folder, such as the provenance.json files
 
 *.parquet

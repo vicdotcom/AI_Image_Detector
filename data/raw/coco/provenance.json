@@ -1,0 +1,14 @@
+{
+  "source": "coco",
+  "created_utc": "2026-09-06T16:33:20+00:00",
+  "last_updated_utc": "2026-09-06T16:33:20+00:00",
+  "files": [
+    {
+      "filename": "val2017.zip",
+      "source_url": "http://images.cocodataset.org/zips/val2017.zip",
+      "bytes": 815585330,
+      "sha256": "4f7e2ccb2866ec5041993c9cf2a952bbed69647b115d0f74da7ce8f4bef82f05",
+      "downloaded_utc": "2026-09-06T16:33:13+00:00"
+    }
+  ]
+}

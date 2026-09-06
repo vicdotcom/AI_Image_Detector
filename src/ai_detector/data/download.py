@@ -876,7 +876,7 @@ def download_ntire(
     dest : Path
         Where to save (e.g. ``data/raw/ntire``).
     shards : list[int] | None
-        Which shard numbers to download.  ``None`` downloads all.
+        Which shard numbers to download. ``None`` downloads all.
     token : str | None
         HuggingFace API token (needed if the repo is gated).
     """

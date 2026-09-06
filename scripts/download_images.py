@@ -94,6 +94,17 @@ DEFAULT_DESTS = {
     "raise":    Path("data/raw/raise"),
 }
 
+## Main function --------------------------------------
+def main() -> int:
+    ap = build_parser()
+    args = ap.parse_args()
+ 
+    if args.source is None:
+        ap.print_help()
+        return 0
+ 
+    return args.func(args)
+
 # ═══════════════════════════════════════════════════════════════════════
 # Subcommand handlers
 # ═══════════════════════════════════════════════════════════════════════
@@ -383,19 +394,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_verify.set_defaults(func=cmd_verify)
  
     return ap
- 
- 
-def main() -> int:
-    ap = build_parser()
-    args = ap.parse_args()
- 
-    if args.source is None:
-        ap.print_help()
-        return 0
- 
-    return args.func(args)
- 
- 
+
+
 if __name__ == "__main__":
     sys.exit(main())
 
