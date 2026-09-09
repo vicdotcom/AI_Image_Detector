@@ -45,8 +45,9 @@ import zipfile
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 import requests
+
 
 ## Constants -------------------------------------
 USER_AGENT = (
@@ -808,43 +809,15 @@ def extract_genimage_local(
     print(f"  ✓ Extracted. {n:,} images now in {dest}")
  
     return records
- 
- 
-# ═══════════════════════════════════════════════════════════════════════
-# Source: GenImage  (Harvard Dataverse — full ~500GB split archive)
-# ═══════════════════════════════════════════════════════════════════════
-GENIMAGE_DATAVERSE_DOI = "doi:10.7910/DVN/AKDIHF"
-DATAVERSE_HOST = "https://dataverse.harvard.edu"
- 
- 
-def list_dataverse_files(doi: str) -> list[dict]:
-    """
-    Ask Dataverse for the file listing of a dataset version.
- 
-    This is the same call your ``download_genimage_metadata.py`` script
-    already makes for ``metadata.csv``.  Here we reuse it to find the
-    ``GenImage.z###`` split-archive parts instead.
- 
-    Returns
-    -------
-    list[dict]
-        One dict per file, each with a ``label`` (filename) and a
-        ``dataFile`` sub-dict containing the numeric ``id`` used for
-        download plus the server's own checksum.
-    """
-    url = f"{DATAVERSE_HOST}/api/datasets/:persistentId/versions/:latest"
-    resp = requests.get(
-        url, params={"persistentId": doi}, timeout=60, headers=HEADERS,
-    )
-    resp.raise_for_status()
-    return resp.json()["data"]["files"]
- 
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # Source: NTIRE  (HuggingFace Hub)
 # ═══════════════════════════════════════════════════════════════════════
 NTIRE_REPO_ID = "deepfakesMSU/NTIRE-RobustAIGenDetection-train"
  
+NTIRE_NUM_SHARDS = 6  # shard_0.zip .. shard_5.zip
+
 def download_ntire(
     dest: Path,
     shards: list[int] | None = None,
@@ -853,35 +826,39 @@ def download_ntire(
     """
     Download the NTIRE Robust AI-Gen Detection training set from
     HuggingFace.
- 
-    The dataset is organized into numbered shards (0–6), each containing
-    ``labels.csv`` and an ``images/`` folder.  The complete dataset is
-    ~30 GB.  For our project we typically need only ``shard_0`` as a
-    ``test_wild`` set.
- 
+
+    The repo stores the dataset as flat per-shard archives at its root —
+    ``shard_0.zip`` .. ``shard_5.zip`` (~20 GB each, ~115 GB total) —
+    rather than as unpacked ``shard_N/`` directories. Each handler call
+    downloads the requested shard archives with ``hf_hub_download`` and
+    extracts them under ``dest``. For our project we typically need only
+    ``shard_0`` as a ``test_wild`` set.
+
     Result layout::
- 
+
         dest/
+        ├── shard_0.zip
         ├── shard_0/
         │   ├── labels.csv
         │   └── images/
         │       ├── 0001.png
         │       └── ...
+        ├── shard_1.zip
         ├── shard_1/
         │   └── ...
         └── provenance.json
- 
+
     Parameters
     ----------
     dest : Path
         Where to save (e.g. ``data/raw/ntire``).
     shards : list[int] | None
-        Which shard numbers to download. ``None`` downloads all.
+        Which shard numbers to download (0-5).  ``None`` downloads all.
     token : str | None
         HuggingFace API token (needed if the repo is gated).
     """
     try:
-        from huggingface_hub import snapshot_download
+        from huggingface_hub import hf_hub_download
     except ImportError:
         print(
             "ERROR: huggingface_hub is required for NTIRE downloads.\n"
@@ -889,43 +866,46 @@ def download_ntire(
             file=sys.stderr,
         )
         sys.exit(1)
- 
+
     dest.mkdir(parents=True, exist_ok=True)
     records: list[ProvenanceRecord] = []
- 
-    # Build allow_patterns to download only the requested shards
-    allow: list[str] | None = None
-    if shards is not None:
-        allow = []
-        for s in shards:
-            allow.append(f"shard_{s}/**")
-            allow.append(f"shard_{s}/*")
-        print(f"Downloading NTIRE shards: {shards} ...")
-    else:
-        print("Downloading NTIRE (all shards — this may be ~30 GB) ...")
- 
-    local_dir = snapshot_download(
-        repo_id=NTIRE_REPO_ID,
-        repo_type="dataset",
-        local_dir=str(dest),
-        allow_patterns=allow,
-        token=token,
-    )
- 
-    # Record what we got
-    dl_path = Path(local_dir)
-    n = _count_images(dl_path)
-    records.append(ProvenanceRecord(
-        filename=f"ntire_shards_{'_'.join(str(s) for s in (shards or ['all']))}",
-        source_url=f"https://huggingface.co/datasets/{NTIRE_REPO_ID}",
-        bytes=sum(f.stat().st_size for f in dl_path.rglob("*") if f.is_file()),
-        sha256="",  # Many files — no single hash
-        downloaded_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    ))
-    print(f"  ✓ NTIRE: {n:,} images in {dl_path}")
- 
+
+    wanted = shards if shards is not None else list(range(NTIRE_NUM_SHARDS))
+    print(f"Downloading NTIRE shards: {wanted} ...")
+
+    for s in wanted:
+        filename = f"shard_{s}.zip"
+        extracted = dest / f"shard_{s}"
+
+        # Skip check: shard already extracted
+        if extracted.exists() and _count_images(extracted) > 0:
+            print(f"  [skip] {filename} already extracted "
+                  f"({_count_images(extracted):,} images)")
+            continue
+
+        print(f"  Fetching {filename} ...")
+        local_path = hf_hub_download(
+            repo_id=NTIRE_REPO_ID,
+            repo_type="dataset",
+            filename=filename,
+            local_dir=str(dest),
+            token=token,
+        )
+        archive = Path(local_path)
+        records.append(_make_provenance(
+            filename,
+            f"https://huggingface.co/datasets/{NTIRE_REPO_ID}/blob/main/{filename}",
+            archive,
+        ))
+
+        extract_zip(archive, extracted)
+        n = _count_images(extracted)
+        print(f"  ✓ {filename}: {n:,} images in {extracted}")
+
+    n_total = _count_images(dest)
+    print(f"  ✓ NTIRE: {n_total:,} images total in {dest}")
+
     return records
- 
  
 # ═══════════════════════════════════════════════════════════════════════
 # Source: RAISE  (Kaggle mirror or direct HTTP)

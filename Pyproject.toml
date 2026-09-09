@@ -25,6 +25,7 @@ dependencies = [
 download = [
     "gdown>=5.1",           # Google Drive downloads (GenImage)
     "huggingface_hub>=0.20", # HuggingFace Hub downloads (NTIRE)
+    "datasets>=2.16",        # HF Datasets for loading NTIRE shards
     "kaggle>=1.6",           # Kaggle dataset downloads (RAISE)
 ]
 dev = [
