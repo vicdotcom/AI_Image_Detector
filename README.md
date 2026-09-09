@@ -79,8 +79,8 @@ Where chance level is the accuracy obtained by always predicting the majority cl
 
 The reduction in accuracy justifies our strategy. We found the shortcut signal to primarily lie in JPEG QF where all AI images are encoded with JPEG QF = 100 compared to real images with varying compression values:
 
-<img src="image.png" alt="alt text" width="75%">
-
+<!-- <img src="image.png" alt="alt text" width="75%"> -->
+![alt text](image.png)
 
 With this in mind we propose the following image preprocessing strategy: 
 
