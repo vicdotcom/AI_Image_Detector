@@ -67,7 +67,7 @@ bias-matching is a data filtering technique designed to eliminate shortcut learn
 
 Still under metadata EDA, we therefore filter for real and fake images that share the exact same metadata profile, thereby eliminating any predictive signal from image metadata. The bias-matching method applied is however asymmetric where AI-generated images are left untouched and any real images that do not fit the metadata profile are filtered out. This asymmetric implementation is because AI-generated images occupy a narrower band of space compared to real images as they are constrained to their specific generators. Asymmetric bias-matching results in far fewer real images therefore a sufficient image dataset is paramount. 
 
-We validate our bias-matching strategy by training a simple Decision Tree classifier on metadata alone. An accuracy score close to 50% (akin to a random guess) shortcut learning is successfully eliminated. The higher the accuracy score, the more bias is inherent in the metadata. The results are as follows:
+We validate our bias-matching strategy by training a simple Decision Tree classifier on metadata alone. An accuracy score close to 50% (akin to a random guess) means that shortcut learning is successfully eliminated. The higher the accuracy score, the more bias is inherent in the metadata. The results are as follows:
 
 ```yaml
 metadata-only accuracy BEFORE matching: 0.9960
