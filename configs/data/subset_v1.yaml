@@ -64,6 +64,12 @@ dedup:
   phash_max_distance: 5
   n_bands: 4
 
+# Final level preprocessing applied to each image 
+# images are resized and re-encoded in order to eliminate any signal from dimensions and jpeg_qf
+preprocessing:
+  image_size: 512 
+  jpeg_qf: 98
+
 # ---------------------------------------------------------------------
 # Pilot. Scaling up to the full dataset means changing ONE number here.
 # n_per_stratum applies per (split, label, generator) cell.

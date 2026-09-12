@@ -41,7 +41,7 @@ Final experimental dataset
 """
 
 from __future__ import annotations
-from typing import Any, cast # Allows type hinting into Any datatype
+from typing import Any, cast, Sequence # Allows type hinting into Any datatype
 
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -51,6 +51,9 @@ import pandas as pd
 
 import yaml
   # The experiment parameters are written directly into a yaml file
+
+from .integrity import near_duplicate_pairs, group_ids_from_pairs
+  # For checking for near-duplicates and assigning them into groups for images downloaded across multiple sources
 
 
 ## ==================================================================================
@@ -400,3 +403,117 @@ def stratified_pilot(
         df.groupby(cols, group_keys=False, observed=True)
           .apply(lambda g: g.sample(min(len(g), n_per_stratum), random_state=seed))
           .reset_index(drop=True))
+
+
+## ==================================================================================
+## Cross-Source Manifest Combinaton
+## ==================================================================================
+def combine_manifests(paths: Sequence[Path]) -> pd.DataFrame:
+    """
+    Loads every per-source manifest parquet and concatenates them into one DataFrame.
+
+    Params:
+      paths (Sequence[Path]): parquet files, one per `build_manifest.py` run.
+
+    Returns:
+      pd.DataFrame: concatenated manifest, columns normalized via `normalize_columns` index reset (row order across sources is otherwise meaningless and stale per-fil indices would collide).
+    """
+
+    frames= []
+    for p in paths:
+        df= pd.read_parquet(p)
+        df= normalize_columns(df)
+        frames.append(df)
+        
+    combined= pd.concat(frames, ignore_index= True)
+    return combined
+
+## ==================================================================================
+## Cross-Source Near-Duplicate Grouping
+## ==================================================================================
+def assign_group_ids(df: pd.DataFrame, phash_col: str = "phash", 
+    max_distance: int =5, n_bands: int = 4) -> pd.DataFrame:
+    """
+    Runs banded-LSH near-duplicate clustering (see `integrity.near_duplicate_pairs`)
+    over the FULL combined manifest and writes the resulting `group_id` column.
+
+    This must run on the combined manifest, not per-source, because a duplicate cluster crossing between image soruces (i.e.- the same underlying photo appearing in two datasets) is the kind of leakage that should be avoided if  are to perform an out-of-distribution test.
+
+    Rows with missing/empty phash (typically `is_corrupt == True`) are given their own singleton group so they never accidentally cluster with a valid image just because both hashes are blank.
+
+    Params:
+      df (pd.DataFrame): combined manifest with a `phash_col` column of 16-hex-char strings. `max_distance` and `n_bands` are forwarded to `near_duplicate_pairs`; keep these equal to `dedup.phash_max_distance` / `dedup.n_bands` in the `subset_v1.yaml` config so the image EDA notebook and any script agree.
+    
+    Returns:
+      pd.DataFrame: copy of df with an integer `group_id` column added.
+    """
+
+    df = df.copy().reset_index(drop=True)
+    has_hash = df[phash_col].notna() & (df[phash_col] != "")
+
+    hashes = df.loc[has_hash, phash_col].tolist()
+    pairs = near_duplicate_pairs(hashes, max_distance=max_distance, n_bands=n_bands)
+    local_groups = group_ids_from_pairs(len(hashes), pairs)
+
+    df["group_id"] = -1  # placeholder; -1 rows get singleton ids below
+    df.loc[has_hash, "group_id"] = local_groups
+
+    # Corrupt / hash-less rows: give each its own unique group id so they
+    # can never silently cluster with anything.
+    next_id = int(df["group_id"].max()) + 1
+    n_missing = int((~has_hash).sum())
+    df.loc[~has_hash, "group_id"] = np.arange(next_id, next_id + n_missing)
+    return df
+
+
+## ==================================================================================
+## Full-Dataset Split Assignment
+## ==================================================================================
+def assign_full_splits(df: pd.DataFrame, cfg: SubsetConfig,
+    group_col: str = "group_id",
+    genimage_sources: tuple[str, ...] = ("genimage", "tiny_genimage"),
+) -> pd.DataFrame:
+    """
+    Extends `assign_genimage_splits` to the whole combined, multi-source
+    manifest.
+
+    GenImage/tiny_genimage rows go through the group-aware, generator-aware logic in `assign_genimage_splits` exactly as before. Every other source is a dedicated held-out evaluation set by *design*, so its split is a fixed lookup, never a computed fraction:
+
+        coco  -> test_ood_real               (false-positive rate on unseen reals)
+        ntire -> test_wild                   (blind: unknown generators + transforms)
+        raise -> test_ood_real_uncompressed  (hardest compression shift)
+
+    Params:
+      df: combined manifest with `source`, `generator`, `group_id` columns.
+      cfg: SubsetConfig (same one driving `assign_genimage_splits`).
+      genimage_sources: which `source` values are routed through the generator-based logic; everything else falls through to the fixed lookup table.
+
+    Returns:
+      pd.DataFrame: copy of df with `split` fully assigned. Raises nothing itself — always follow this with `assert_no_leakage`.
+    
+    Raises:
+      ValueError: Raised rather than silently leaving rows `unassigned` if a source appears that neither branch recognizes. This ensures all sources are accounted for.
+    """
+    df = df.copy()
+    df["split"] = "unassigned"
+
+    is_genimage = df["source"].isin(genimage_sources)
+    genimage_part = assign_genimage_splits(df[is_genimage], cfg, group_col=group_col)
+    df.loc[genimage_part.index, "split"] = genimage_part["split"]
+
+    fixed_lookup = {
+        "coco": "test_ood_real",
+        "ntire": "test_wild",
+        "raise": "test_ood_real_uncompressed",
+    }
+    for source_name, split_name in fixed_lookup.items():
+        df.loc[df["source"] == source_name, "split"] = split_name
+
+    unresolved = (df["split"] == "unassigned").sum()
+    if unresolved:
+        bad_sources = df.loc[df["split"] == "unassigned", "source"].unique().tolist()
+        raise ValueError(
+            f"{unresolved} rows have no split logic (unknown sources: {bad_sources}). "
+            "Add them to genimage_sources or fixed_lookup."
+        )
+    return df

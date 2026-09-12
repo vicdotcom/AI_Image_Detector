@@ -386,7 +386,7 @@ def near_duplicate_pairs(hashes: Sequence[str],
 
     Banded LSH works by:
         1. Splitting each 64-bit has integer into `n_bands`
-        2. By the Piegonhole Rpinciple, if two hashes differ by at most `max_distance= 3` bits, those three differing bits can land in at most 3 of the 4 bands. Therefore, at least one 16-bit band must be 100% identical between the two hashes.
+        2. By the Piegonhole Principle, if two hashes differ by at most `max_distance= 3` bits, those three differing bits can land in at most 3 of the 4 bands. Therefore, at least one 16-bit band must be 100% identical between the two hashes.
 
     Returns a list of (`index_a`, `index_b`, `distance`) with `index_a` < `index_b`
     """

@@ -100,5 +100,8 @@ Thumbs.db
 .vscode/
 
 ## Specific files
-Reference_Paper.pdf  
+Reference_Paper.pdf
 # Paper written based on the GenImage detection dataset
+tree.txt
+# Tree diagram for tracking directory folders
+# Generate one as follows: tree /A > tree.txt
